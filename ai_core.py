@@ -29,7 +29,31 @@ class WaterQualityMLPredictor:
             self.model = KNeighborsRegressor(n_neighbors=3)
         else:
             self.model = SVR(kernel='rbf', C=100, gamma=0.1, epsilon=.1)
+# *************************** 实操环节 - 陈妤 - 算法工程师****************************************************
+## 实现“时序突变自动检测”
+    def detect_sudden_anomaly(self, df, target_col='溶解氧', threshold=3.0):
+        """现场开发修复：基于基准线的全指标双向突变检测算法"""
+        recent_data = df[target_col].values[-10:]
+        # 因为我们模拟的突发污染会改变最后3天的数据，所以取前面7天作为“正常基准”
+        baseline_data = recent_data[:-3]
+        mean_val = np.mean(baseline_data)
+        std_val = np.std(baseline_data)
+        latest_val = recent_data[-1]
 
+        # 计算绝对变化幅度：无论是酸碱飙升，还是溶解氧暴跌，都能被捕捉
+        diff = abs(latest_val - mean_val)
+
+        # 只要变化幅度超过 3倍标准差(加入0.5作为最小波动阈值防误判)，即判定突变
+        if diff > (threshold * std_val + 0.5):
+            return True, latest_val
+        return False, latest_val
+
+        # 溶解氧突然骤降超过 2 倍标准差，且低于警戒值，判定为突变
+        if (mean_val - latest_val) > threshold * std_val and latest_val < 4.0:
+            return True, latest_val
+        return False, latest_val
+
+# *************************** 实操环节 - 陈妤 - 算法工程师****************************************************
     def build_features(self, data):
         X, y = [], []
         for i in range(len(data) - self.time_steps):
