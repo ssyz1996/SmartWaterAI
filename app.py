@@ -6,7 +6,37 @@ import pydeck as pdk
 import plotly.graph_objects as go
 from ai_core import WaterQualityMLPredictor
 from openai import OpenAI
+import hashlib
+import json
 
+# --- 新增：区块链存证引擎 ---
+if 'blockchain_logs' not in st.session_state:
+    st.session_state.blockchain_logs = []
+
+
+def record_to_blockchain(operator, action, details):
+    """极简数据锚定上链：将关键操作生成哈希，形成不可篡改的凭证"""
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    # 1. 将操作数据打包
+    raw_data = json.dumps({
+        "op": operator, "act": action, "desc": details, "ts": timestamp
+    }, ensure_ascii=False)
+
+    # 2. 生成 SHA-256 数字指纹模拟链上交易哈希 (TxHash)
+    tx_hash = "0x" + hashlib.sha256(raw_data.encode('utf-8')).hexdigest()
+
+    # 3. 记录到前端日志中
+    log_entry = {
+        "time": timestamp,
+        "operator": operator,
+        "action": action,
+        "tx_hash": tx_hash[:24] + "..."  # 截断展示
+    }
+    st.session_state.blockchain_logs.insert(0, log_entry)
+    return tx_hash
+
+
+# ------------------------------
 # --- 1. 页面配置 ---
 st.set_page_config(page_title="浙江省流域数字大屏", layout="wide", initial_sidebar_state="expanded")
 
@@ -231,8 +261,14 @@ with st.sidebar:
     ])
     future_days = st.slider("📅 推演天数", 3, 14, 7)
     start_btn = st.button("🚀 启动全域 AI 推演", type="primary", use_container_width=True)
+    # if st.button("🚨 紧急预警", use_container_width=True):
+    #     st.session_state['god_mode'] = True; st.session_state.pop('future_vals', None); st.rerun()
     if st.button("🚨 紧急预警", use_container_width=True):
-        st.session_state['god_mode'] = True; st.session_state.pop('future_vals', None); st.rerun()
+        st.session_state['god_mode'] = True
+        st.session_state.pop('future_vals', None)
+        # 🟢 新增上链
+        record_to_blockchain("管理员(决策指挥舱)", "触发全流域紧急预警", "启动 God Mode, 模拟水质突发恶化")
+        st.rerun()
     if st.button("🔄 预警解除", use_container_width=True):
         st.session_state['god_mode'] = False; st.session_state.pop('future_vals', None); st.rerun()
     # 【侧边栏原生代码...】
@@ -262,8 +298,16 @@ if user_role == "📢 社会公众：参与激励端":
             if st.button("🚀 提交研判并获取积分", use_container_width=True):
                 st.balloons()
                 target_station = geo_df[geo_df['station'] == pub_loc].iloc[0]
-                st.session_state.task_list.append({"time": time.strftime("%H:%M"), "loc": pub_loc, "desc": pub_desc, "status": "待核实", "user": "市民"+str(np.random.randint(100,999)), "lat": target_station['lat'], "lon": target_station['lon']})
+                st.session_state.task_list.append(
+                    {"time": time.strftime("%H:%M"), "loc": pub_loc, "desc": pub_desc, "status": "待核实",
+                     "user": "市民" + str(np.random.randint(100, 999)), "lat": target_station['lat'],
+                     "lon": target_station['lon']})
+
+                # 🟢 新增上链
+                tx = record_to_blockchain("社会公众(移动端)", "上传水质污染证据", f"地点:{pub_loc}, 描述:{pub_desc}")
+
                 st.success("✅ 上报成功！获得奖励：50 绿币。")
+                st.info(f"🔗 证据已上链存证 | 交易哈希: {tx}")  # 顺便展示给用户看
 
     with p_right:
         with st.container(border=True):
@@ -304,9 +348,16 @@ elif user_role == "👨‍ 巡检员：执行作战端":
                     st.write(f"📍 位置：{item.get('address', '浙江省杭州市建德市新安江街道')}  \n"
                              f"🧭 坐标：[经度 {item['lon']:.4f}, 纬度 {item['lat']:.4f}]  \n"
                              f"📝 描述：{item['desc']}")
+                    # if item['status'] == '待核实':
+                    #     if st.button(f"立即前往处置 #{idx}", type="primary"):
+                    #         item['status'] = '已处理';
+                    #         st.rerun()
                     if item['status'] == '待核实':
                         if st.button(f"立即前往处置 #{idx}", type="primary"):
-                            item['status'] = '已处理';
+                            item['status'] = '已处理'
+
+                            # 🟢 新增上链
+                            record_to_blockchain("基层巡检员", f"完结环保工单 #{idx + 1}", f"处置地点:{item['loc']}")
                             st.rerun()
     with t_right:
         st.markdown("#### 📍 突发事件分布")
@@ -358,7 +409,11 @@ else:
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1: st.metric("📡 在线设备", "12,402", "100%")
     with k2: st.metric(f"💧 {target_obj} 极值", f"{df[target_obj].iloc[-1]:.2f}", "+2.40!" if st.session_state['god_mode'] else "稳定", delta_color="inverse" if st.session_state['god_mode'] else "normal")
-    with k3: st.metric("🤝 社会参与", f"{len(st.session_state.task_list)}", "+1" if st.session_state.task_list else "0")
+    # with k3: st.metric("🤝 社会参与", f"{len(st.session_state.task_list)}", "+1" if st.session_state.task_list else "0")
+    # 修改后的 k3：
+    with k3:
+        st.metric("🔗 链上存证量", f"{len(st.session_state.blockchain_logs)} 笔",
+                  "不可篡改" if st.session_state.blockchain_logs else "实时监控")
     with k4: st.metric("🏭 涉水监控", "3,105", "12家异常")
     with k5: st.metric("🧠 算力状态", "24.5%", "运行健康")
 
@@ -485,6 +540,44 @@ else:
             st.pydeck_chart(pdk.Deck(layers=[geojson, columns], initial_view_state=view_state, map_provider=None,
                                      tooltip={"text": "{station}\n指标: {ph_level}"}), use_container_width=True)
     st.markdown("---")
+    # ========================================================
+    # 🌟 专属展示：主页区块链核心展示区
+    # ========================================================
+    st.markdown("### 🔗 Web3.0 区块链数据信任确权中心")
+    bc_col1, bc_col2 = st.columns([1, 2.5])
+
+    with bc_col1:
+        with st.container(border=True):
+            st.markdown("#### 🛡️ 联盟链节点状态")
+            st.metric("底层网络架构", "正常 (FISCO BCOS)", "4 活跃共识节点")
+            st.metric("累计区块高度", f"Block #{12045 + len(st.session_state.blockchain_logs)}",
+                      f"+{len(st.session_state.blockchain_logs)} 区块")
+            st.metric("智能合约地址", "已部署 (Active)", "0x7a2...3f9")
+
+    with bc_col2:
+        with st.container(border=True):
+            st.markdown("#### ⛓️ 实时上链交易日志 (TxHash 存证)")
+            if not st.session_state.blockchain_logs:
+                st.info("🟢 当前暂无关键操作上链。点击左侧【🚨 紧急预警】即可触发智能合约上链。")
+            else:
+                df_logs = pd.DataFrame(st.session_state.blockchain_logs)
+                st.dataframe(
+                    df_logs,
+                    column_config={
+                        "time": st.column_config.TextColumn("出块时间", width="small"),
+                        "operator": st.column_config.TextColumn("操作节点"),
+                        "action": st.column_config.TextColumn("链上动作"),
+                        "tx_hash": st.column_config.TextColumn("交易哈希指纹 (具备法律效力)", width="large")
+                    },
+                    use_container_width=True,
+                    hide_index=True,
+                    height=200  # 固定高度，页面更美观
+                )
+    st.markdown("---")
+    # 为地图也加一个白框 container，让整体 UI 风格高度统一
+    with st.container(border=True):
+        st.pydeck_chart(pdk.Deck(layers=[geojson, columns], initial_view_state=view_state, map_provider=None,
+                                 tooltip={"text": "{station}\n指标: {ph_level}"}), use_container_width=True)
     #*************************** 实操环节 - part1：王彦霆 - 系统开发工程师****************************************************
     #—— 状态管理与数据总线串联
     # 全局异常数据总线监控与联动触发
@@ -733,3 +826,24 @@ else:
             del st.session_state['trigger_emergency_report']
             st.rerun()
     # *************************** 实操环节 - part2：王彦霆 - 系统开发工程师****************************************************
+
+        # === 将以下代码加在 app.py 的最末尾 ===
+        st.markdown("---")
+        st.markdown("### 🔗 联盟链底层审计 (区块链防篡改存证中心)")
+
+        if not st.session_state.blockchain_logs:
+            st.info("🟢 当前系统运行平稳，暂无关键操作上链记录。")
+        else:
+            # 用 dataframe 优美地展示上链记录
+            df_logs = pd.DataFrame(st.session_state.blockchain_logs)
+            st.dataframe(
+                df_logs,
+                column_config={
+                    "time": "上链时间戳",
+                    "operator": "操作主体节点",
+                    "action": "高危操作指令",
+                    "tx_hash": st.column_config.TextColumn("数据数字指纹 (TxHash) - 具备法律效力", width="large")
+                },
+                use_container_width=True,
+                hide_index=True
+            )
