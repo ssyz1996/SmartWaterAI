@@ -29,7 +29,10 @@ class WaterQualityMLPredictor:
             self.model = KNeighborsRegressor(n_neighbors=3)
         else:
             self.model = SVR(kernel='rbf', C=100, gamma=0.1, epsilon=.1)
-# *************************** 实操环节 - 陈妤 - 算法工程师****************************************************
+
+#TODO 算法工程师
+
+# *************************** 实操环节 算法工程师****************************************************
 ## 实现“时序突变自动检测”
     def detect_sudden_anomaly(self, df, target_col='溶解氧', threshold=3.0):
         """现场开发修复：基于基准线的全指标双向突变检测算法"""
@@ -53,7 +56,7 @@ class WaterQualityMLPredictor:
             return True, latest_val
         return False, latest_val
 
-# *************************** 实操环节 - 陈妤 - 算法工程师****************************************************
+# *************************** 实操环节 算法工程师****************************************************
     def build_features(self, data):
         X, y = [], []
         for i in range(len(data) - self.time_steps):
