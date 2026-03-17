@@ -4,36 +4,53 @@ import base64
 import json
 from config import settings
 
-#TODO 大模型工程师
+#TODO  ACTION 1 大模型工程师
 
 # *************************** 实操环节 大模型工程师****************************************************
 # 大模型人工智能开发： —— 开发“多模态政务专报 Agent”
-def generate_gov_report(vision_res, xai_df, target_val):
+def generate_gov_report(vision_res, xai_df, target_val, env_esi=0):
     """现场开发：多智能体信息融合，生成政务公文"""
     # 提取 XAI 最高权重的污染源
     top_reason = xai_df.iloc[-1]['污染归因要素']
 
     prompt = f"""
-    请作为省水利厅的高级文秘，撰写一份《微流域水质突发恶化情况专报》。
-    输入素材：
-    1. 前端传感器：溶解氧突降至 {target_val}mg/L
-    2. 群众多模态举报：{vision_res.get('pollution_type', '未知')} (危险指数:{vision_res.get('severity_score')})
-    3. AI 算法 XAI 归因：主要致因是【{top_reason}】
+        请作为省水利厅的高级文秘，撰写一份水质应急专报。
 
-    要求：符合政务公文格式，包含【事件概述】【AI溯源分析】【应急处置建议】，字数300字左右。
-    """
+        【排版与内容严格要求】：
+        1. 不需要写大标题
+        2. 专报落款处的联系人必须严格写为：专报联系人：XXX（水环境监测处） （绝不能编造具体人名如王明等！）
+        3. 小节标题（如事件概述、AI溯源分析、应急处置建议）必须使用 **加粗** 并换行。
+        4. 关键的数据指标（如 {target_val}mg/L, 危险指数 {vision_res.get('severity_score')} 等）必须使用 **加粗** 突出显示。
+
+        输入素材：
+        1. 前端传感器：溶解氧突降至 {target_val}mg/L
+        2. 群众多模态举报：{vision_res.get('pollution_type', '未知')} (危险指数:{vision_res.get('severity_score')})
+        3. AI 算法 XAI 归因：主要致因是【{top_reason}】
+        """
 
     client = OpenAI(
         api_key="sk-51004d500a0146c0acfd2764b25d7f65",
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
     )
 
+#TODO  ACTION 2 大模型工程师
+
+    # ACTION 1 版本代码：
     response = client.chat.completions.create(
         model="qwen-plus",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
 
+    # ACTION 2 版本代码：
+    # if env_esi > 5.0:
+    #     prompt += f"\n⚠️ 系统检测到极端气象波动(ESI指数:{env_esi})！请优先考虑【台风底泥翻涌】，提供防汛建议！"
+    # response = client.chat.completions.create(
+    #     model="qwen-plus",
+    #     messages=[{"role": "user", "content": prompt}],
+    #     stream=True  # 核心：开启流式输出，不卡顿
+    # )
+    # return response
 # *************************** 实操环节 大模型工程师****************************************************
 
 

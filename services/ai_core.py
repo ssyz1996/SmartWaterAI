@@ -30,31 +30,39 @@ class WaterQualityMLPredictor:
         else:
             self.model = SVR(kernel='rbf', C=100, gamma=0.1, epsilon=.1)
 
-#TODO 算法工程师
+#TODO ACTION 1 算法工程师
 
 # *************************** 实操环节 算法工程师****************************************************
 ## 实现“时序突变自动检测”
     def detect_sudden_anomaly(self, df, target_col='溶解氧', threshold=3.0):
         """现场开发修复：基于基准线的全指标双向突变检测算法"""
         recent_data = df[target_col].values[-10:]
-        # 因为我们模拟的突发污染会改变最后3天的数据，所以取前面7天作为“正常基准”
         baseline_data = recent_data[:-3]
         mean_val = np.mean(baseline_data)
         std_val = np.std(baseline_data)
         latest_val = recent_data[-1]
 
-        # 计算绝对变化幅度：无论是酸碱飙升，还是溶解氧暴跌，都能被捕捉
+        # 核心：你已经在这里算出了 diff，台上连这行都不用敲了，直接拿来用！
         diff = abs(latest_val - mean_val)
 
-        # 只要变化幅度超过 3倍标准差(加入0.5作为最小波动阈值防误判)，即判定突变
-        if diff > (threshold * std_val + 0.5):
-            return True, latest_val
-        return False, latest_val
+        # 定义初始状态为正常
+        is_anomaly = False
 
-        # 溶解氧突然骤降超过 2 倍标准差，且低于警戒值，判定为突变
-        if (mean_val - latest_val) > threshold * std_val and latest_val < 4.0:
-            return True, latest_val
-        return False, latest_val
+        # 规则1（通用）：只要变化幅度超过设定阈值
+        if diff > (threshold * std_val + 0.5):
+            is_anomaly = True
+        # 规则2（兜底特判）：溶解氧突然骤降超过 2 倍标准差，且低于警戒值(4.0)
+        elif target_col == '溶解氧' and (mean_val - latest_val) > (2.0 * std_val) and latest_val < 4.0:
+            is_anomaly = True
+
+# TODO ACTION 2 算法工程师
+        # ACTION 1 版本代码：
+        return is_anomaly, latest_val
+
+        # ACTION 2 版本代码：
+        # 特征工程：计算标准化环境恶化指数 ESI = 绝对偏差 / (标准差 + 极小值防除零)
+        # esi_score = round(diff / (std_val + 0.001), 2)
+        # return is_anomaly, latest_val, esi_score  # 核心：将 ESI 指数暴露出去
 
 # *************************** 实操环节 算法工程师****************************************************
     def build_features(self, data):

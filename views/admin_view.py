@@ -8,7 +8,7 @@ from components.charts import (draw_evo_chart, draw_gauge_chart, draw_radar_char
 from components.custom_html import (get_node_html, get_empty_ledger_html, get_topology_html, get_twin_html,
                                     get_logs_html)
 from services.ai_core import WaterQualityMLPredictor
-from services.llm_service import analyze_citizen_photo, generate_gov_report
+from services.llm_service import analyze_citizen_photo,  generate_gov_report
 
 
 def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_btn):
@@ -158,20 +158,29 @@ def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_b
             map_placeholder.pydeck_chart(deck_obj, use_container_width=True)
     st.markdown("---")
 
-#TODO 系统开发工程师-后端开发部分
+#TODO ACTION 1 系统开发工程师-后端开发部分
     # *************************** 实操环节 - part1：王彦霆 - 系统开发工程师****************************************************
     # —— 状态管理与数据总线串联
     # 全局异常数据总线监控与联动触发
     # 1. 实例化一个基础的预测器（仅用于调用异常检测方法）
     anomaly_checker = WaterQualityMLPredictor()
-
+# TODO ACTION 2 系统开发工程师-后端开发部分
     # 2. 实时检测当前选中的指标 (target_obj) 是否发生数据突变
+
+    # ACTION 1 版本代码：
     is_anomaly, val = anomaly_checker.detect_sudden_anomaly(df, target_obj)
+
+    # ACTION 2 版本代码 开始： (台上实操时解开注释，解决解包 ValueError 报错)：
+    # is_anomaly, val, current_esi = anomaly_checker.detect_sudden_anomaly(df, target_obj)
+    # st.session_state['emergency_esi'] = current_esi  # 存入全局总线，给大模型用
+    # ACTION 2 版本代码 结束
+
 
     # 3. 当检测到异常（例如被“紧急预警”按钮触发 God Mode），且尚未生成报告时
     if is_anomaly and 'report_generated' not in st.session_state:
         st.session_state['trigger_emergency_report'] = True
         st.session_state['emergency_val'] = val
+
     # *************************** 实操环节 - part1：王彦霆 - 系统开发工程师****************************************************
 
 
@@ -287,8 +296,8 @@ def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_b
 
             st.session_state.messages.append({"role": "assistant", "content": full_response})
 
-#TODO 系统开发工程师-前端开发部分
-    # *************************** 实操环节 - part2：系统开发工程师-前端****************************************************
+#TODO ACTION 1 系统开发工程师-前端开发部分
+    # *************************** 实操环节 - Action 1 开始：系统开发工程师-前端****************************************************
     # 状态管理与数据总线串联
     # 交互开发与全局总控
     # 角色定位：一边给评委解说，一边开发最酷炫的前端交互——“指挥舱紧急状态弹窗”。
@@ -319,11 +328,24 @@ def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_b
             status.update(label="报告生成完毕！", state="complete", expanded=False)
 
         with st.container(border=True):
-            st.markdown("### 📄 《微流域水质突发异常情况专报》")
+# TODO ACTION 2  系统工程师
+            # ACTION 1 改进前的代码
+            st.markdown("### 《微流域水质突发异常情况专报》")
             st.info(st.session_state['gov_report'])
-            st.download_button("一键下载 (Word)", st.session_state['gov_report'], file_name="应急专报.docx")
 
-        if st.button("处置完毕，解除预警"):
-            del st.session_state['trigger_emergency_report']
-            st.rerun()
-    # *************************** 实操环节 - part2：系统开发工程师-前端****************************************************
+            # ACTION 2 开始
+        #     #拿到4号传来的 ESI 指数 (前提是总线处也同步修改接收了 esi)
+        #     current_esi = st.session_state.get('emergency_esi', 5.5)
+        #     if current_esi > 5.0:
+        #         st.error(f"🚨 警告：检测到极端气象恶化 (ESI指数: {current_esi})，启动防汛预案！")
+        #
+        #     stream_response = generate_gov_report(vision_res, safe_xai, st.session_state['emergency_val'], current_esi)
+        #     st.session_state['gov_report'] = st.write_stream(stream_response) # 核心：渲染打字机动效
+        #     # ACTION 2 结束
+        #
+        #     st.download_button("一键下载 (Word)", st.session_state['gov_report'], file_name="应急专报.docx")
+        #
+        # if st.button("处置完毕，解除预警"):
+        #     del st.session_state['trigger_emergency_report']
+        #     st.rerun()
+    # *************************** Action 1 结束：系统开发工程师-前端****************************************************
