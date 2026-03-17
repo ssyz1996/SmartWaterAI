@@ -1,27 +1,53 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+import duckdb
+import time
 
-@st.cache_data
-def load_timeseries_data(god_mode):
-    dates = pd.date_range(end=pd.Timestamp.today(), periods=60)
-    x = np.linspace(0, 15, 60)
 
-    df = pd.DataFrame({
-        'Date': dates,
-        '酸碱': 7.2 + np.sin(x) * 0.3 + np.random.normal(0, 0.08, 60),
-        '溶解氧': 6.5 + np.cos(x) * 0.5 + np.random.normal(0, 0.15, 60),
-        '氨氮': 0.45 + np.sin(x * 1.5) * 0.1 + np.random.normal(0, 0.05, 60),
-        '总磷': 0.12 + np.cos(x * 1.2) * 0.03 + np.random.normal(0, 0.01, 60),
-        '浊度': 3.5 + np.sin(x * 0.8) * 0.5 + np.random.normal(0, 0.2, 60)
-    })
+@st.cache_data(ttl=60)  # 缓存60秒
+@st.cache_data(ttl=60)
+def load_timeseries_data(god_mode, interval='6 hours', limit=90):
+    start_q_time = time.time()
+
+    # 获取底库真实的物理行数 (DuckDB 查 count 是瞬间完成的)
+    total_rows = duckdb.query("SELECT COUNT(*) FROM 'data/water_history.parquet'").fetchone()[0]
+    st.session_state['duckdb_total_rows'] = total_rows  # 存入全局状态供大屏显示
+
+    # 动态构建真实的大数据 OLAP 聚合 SQL
+    query = f"""
+        SELECT 
+            time_bucket(INTERVAL '{interval}', timestamp) AS Date,
+            AVG(ph_level) AS 酸碱,
+            AVG(do_level) AS 溶解氧,
+            AVG(nh3n_level) AS 氨氮,
+            AVG(tp_level) AS 总磷,
+            AVG(turbidity) AS 浊度
+        FROM 'data/water_history.parquet'
+        GROUP BY Date
+        ORDER BY Date DESC
+        LIMIT {limit}
+    """
+
+    # 极速向量化执行
+    df = duckdb.query(query).to_df()
+    df = df.sort_values('Date').reset_index(drop=True)
+
+    end_q_time = time.time()
+
+    # 🌟 核心：把底层的大数据执行指标存起来，给大屏展示用
+    st.session_state['duckdb_cost'] = round((end_q_time - start_q_time) * 1000, 2)
+    st.session_state['duckdb_sql'] = query
+    st.session_state['duckdb_rows'] = len(df)
 
     if god_mode:
-        df.loc[57:59, '酸碱'] = [8.1, 8.8, 9.6]
-        df.loc[57:59, '溶解氧'] = [5.0, 4.2, 3.1]
-        df.loc[57:59, '氨氮'] = [0.8, 1.2, 1.8]
-        df.loc[57:59, '总磷'] = [0.3, 0.5, 0.8]
-        df.loc[57:59, '浊度'] = [8.0, 12.5, 18.2]
+        last_idx = len(df) - 1
+        df.loc[last_idx - 2:last_idx, '酸碱'] = [8.1, 8.8, 9.6]
+        df.loc[last_idx - 2:last_idx, '溶解氧'] = [5.0, 4.2, 3.1]
+        df.loc[last_idx - 2:last_idx, '氨氮'] = [0.8, 1.2, 1.8]
+        df.loc[last_idx - 2:last_idx, '总磷'] = [0.3, 0.5, 0.8]
+        df.loc[last_idx - 2:last_idx, '浊度'] = [8.0, 12.5, 18.2]
+
     return df
 
 @st.cache_data

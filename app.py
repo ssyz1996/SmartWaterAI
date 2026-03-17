@@ -20,8 +20,12 @@ if 'god_mode' not in st.session_state:
     st.session_state['god_mode'] = False
 init_blockchain_state()
 
-# 统一加载数据
-df = load_timeseries_data(st.session_state['god_mode'])
+# 动态获取侧边栏设置的大数据参数，默认 6 hours 和 90 个节点
+db_interval = st.session_state.get('db_interval', '6 hours')
+db_limit = st.session_state.get('db_limit', 90)
+
+# 统一加载数据，传入大数据引擎的动态参数
+df = load_timeseries_data(st.session_state['god_mode'], interval=db_interval, limit=db_limit)
 geo_df = load_geo_data(st.session_state['god_mode'])
 
 # 页面顶部标题

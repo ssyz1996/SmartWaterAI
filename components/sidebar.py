@@ -7,6 +7,20 @@ from services.blockchain import record_to_blockchain
 def render_sidebar():
     with st.sidebar:
         st.markdown(get_digital_human_html(), unsafe_allow_html=True)
+        # ===== 新增：湖仓一体大数据控制台 =====
+        with st.expander("🗄️ 湖仓一体大数据引擎底座", expanded=True):
+            st.caption("动态操作 Parquet 数据湖，体验毫秒级 OLAP 聚合")
+            st.session_state['db_interval'] = st.selectbox(
+                "⏳ 动态降采样粒度 (Group By)",
+                ["1 hour", "6 hours", "12 hours", "1 day", "7 days"],
+                index=1
+            )
+            st.session_state['db_limit'] = st.slider(
+                "📊 扫描输出节点数 (Limit)",
+                min_value=30, max_value=500, value=90, step=10
+            )
+        st.markdown("---")
+        # =====================================
         st.markdown("### ⚙️ 业务终端切换")
         user_role = st.selectbox("👤 切换操作视角",
                                  ["👑 管理员：决策指挥舱", "👨‍ 巡检员：执行作战端", "📢 社会公众：参与激励端"])
