@@ -8,7 +8,7 @@ from components.charts import (draw_evo_chart, draw_gauge_chart, draw_radar_char
 from components.custom_html import (get_node_html, get_empty_ledger_html, get_topology_html, get_twin_html,
                                     get_logs_html)
 from services.ai_core import WaterQualityMLPredictor
-from services.llm_service import analyze_citizen_photo,  generate_gov_report
+from services.llm_service import analyze_citizen_photo, generate_gov_report
 
 
 def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_btn):
@@ -121,7 +121,7 @@ def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_b
                 c_flow = node['e_flow'] if is_emergency else node['n_flow']
                 stat_c, stat_t, g_top = ("#ef4444", "🚨 紧急锁死", "0%") if c_open == 0 else (
                     ("#f59e0b", "🟡 压减泄洪", f"-{c_open}%") if c_open < 50 else (
-                    "#10b981", "🟢 自动调度", f"-{c_open}%"))
+                        "#10b981", "🟢 自动调度", f"-{c_open}%"))
                 gates_html_content += f"""
                 <div style="flex: 1; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 5px; box-shadow: 0 4px 8px rgba(0,0,0,0.08); margin: 0 4px; display: flex; flex-direction: column;">
                 <div style="font-size: 11px; font-weight: 800; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; text-align: center;">{node['name']}</div>
@@ -177,13 +177,13 @@ def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_b
             map_placeholder.pydeck_chart(deck_obj, use_container_width=True)
     st.markdown("---")
 
-#TODO ACTION 1 系统开发工程师-后端开发部分
+    # TODO ACTION 1 系统开发工程师-后端开发部分
     # *************************** 实操环节 - part1：王彦霆 - 系统开发工程师****************************************************
     # —— 状态管理与数据总线串联
     # 全局异常数据总线监控与联动触发
     # 1. 实例化一个基础的预测器（仅用于调用异常检测方法）
     anomaly_checker = WaterQualityMLPredictor()
-# TODO ACTION 2 系统开发工程师-后端开发部分
+    # TODO ACTION 2 系统开发工程师-后端开发部分
     # 2. 实时检测当前选中的指标 (target_obj) 是否发生数据突变
 
     # ACTION 1 版本代码：
@@ -194,14 +194,12 @@ def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_b
     # st.session_state['emergency_esi'] = current_esi  # 存入全局总线，给大模型用
     # ACTION 2 版本代码 结束
 
-
     # 3. 当检测到异常（例如被“紧急预警”按钮触发 God Mode），且尚未生成报告时
     if is_anomaly and 'report_generated' not in st.session_state:
         st.session_state['trigger_emergency_report'] = True
         st.session_state['emergency_val'] = val
 
     # *************************** 实操环节 - part1：王彦霆 - 系统开发工程师****************************************************
-
 
     if start_btn:
         model_key = ml_algorithm.split(" ")[0]
@@ -315,7 +313,7 @@ def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_b
 
             st.session_state.messages.append({"role": "assistant", "content": full_response})
 
-#TODO ACTION 1 系统开发工程师-前端开发部分
+    # TODO ACTION 1 系统开发工程师-前端开发部分
     # *************************** 实操环节 - Action 1 开始：系统开发工程师-前端****************************************************
     # 状态管理与数据总线串联
     # 交互开发与全局总控
@@ -329,37 +327,34 @@ def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_b
             st.write("1. 调取时序突变检测算法...")
             st.write("2. 融合多模态视觉溯源...")
             st.write("3. 提取归因权重分布...")
+            # 假定 vision_res 已经存储在 session 中
+            vision_res = st.session_state.get('vision_res',
+                                              {'pollution_type': '水面大面积漂浮物', 'severity_score': 8.5})
+
+            # 🌟 修复：防止没有先点击AI预测导致的 KeyError
+            fallback_xai = pd.DataFrame({"污染归因要素": ["工业偷排或面源污染"], "权重贡献度": [1.0]})
+            safe_xai = st.session_state.get('xai_data', fallback_xai)
 
             # 传入之前缓存的数据生成报告
             if 'gov_report' not in st.session_state:
-                # 假定 vision_res 已经存储在 session 中
-                vision_res = st.session_state.get('vision_res',
-                                                  {'pollution_type': '水面大面积漂浮物', 'severity_score': 8.5})
-
-                # 🌟 修复：防止没有先点击AI预测导致的 KeyError
-                fallback_xai = pd.DataFrame({"污染归因要素": ["工业偷排或面源污染(兜底推测)"], "权重贡献度": [1.0]})
-                safe_xai = st.session_state.get('xai_data', fallback_xai)
-
-                # 调用大模型生成专报
+                # 只有在没有报告时，才执行静态生成逻辑（兼容ACTION 1）
                 st.session_state['gov_report'] = generate_gov_report(vision_res, safe_xai,
                                                                      st.session_state['emergency_val'])
-
             status.update(label="报告生成完毕！", state="complete", expanded=False)
 
         with st.container(border=True):
-# TODO ACTION 2  系统工程师
+            # TODO ACTION 2  系统工程师
             # ACTION 1 改进前的代码
             st.markdown("### 《微流域水质突发异常情况专报》")
             st.info(st.session_state['gov_report'])
-
             # ACTION 2 开始
-            #拿到4号传来的 ESI 指数 (前提是总线处也同步修改接收了 esi)
+            # 拿到4号传来的 ESI 指数 (前提是总线处也同步修改接收了 esi)
             # current_esi = st.session_state.get('emergency_esi', 5.5)
             # if current_esi > 5.0:
             #     st.error(f"🚨 警告：检测到极端气象恶化 (ESI指数: {current_esi})，启动防汛预案！")
             #
             # stream_response = generate_gov_report(vision_res, safe_xai, st.session_state['emergency_val'], current_esi)
-            # st.session_state['gov_report'] = st.write_stream(stream_response) # 核心：渲染打字机动效
+            # st.session_state['gov_report'] = st.write_stream(stream_response)  # 核心：渲染打字机动效
             # ACTION 2 结束
 
             st.download_button("一键下载 (Word)", st.session_state['gov_report'], file_name="应急专报.docx")
