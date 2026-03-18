@@ -5,7 +5,6 @@ import duckdb
 import time
 
 
-@st.cache_data(ttl=60)  # 缓存60秒
 @st.cache_data(ttl=60)
 def load_timeseries_data(god_mode, interval='6 hours', limit=90):
     start_q_time = time.time()

@@ -353,18 +353,18 @@ def render_admin_view(df, geo_df, target_obj, ml_algorithm, future_days, start_b
             st.info(st.session_state['gov_report'])
 
             # ACTION 2 开始
-        #     #拿到4号传来的 ESI 指数 (前提是总线处也同步修改接收了 esi)
-        #     current_esi = st.session_state.get('emergency_esi', 5.5)
-        #     if current_esi > 5.0:
-        #         st.error(f"🚨 警告：检测到极端气象恶化 (ESI指数: {current_esi})，启动防汛预案！")
-        #
-        #     stream_response = generate_gov_report(vision_res, safe_xai, st.session_state['emergency_val'], current_esi)
-        #     st.session_state['gov_report'] = st.write_stream(stream_response) # 核心：渲染打字机动效
-        #     # ACTION 2 结束
-        #
-        #     st.download_button("一键下载 (Word)", st.session_state['gov_report'], file_name="应急专报.docx")
-        #
-        # if st.button("处置完毕，解除预警"):
-        #     del st.session_state['trigger_emergency_report']
-        #     st.rerun()
+            #拿到4号传来的 ESI 指数 (前提是总线处也同步修改接收了 esi)
+            # current_esi = st.session_state.get('emergency_esi', 5.5)
+            # if current_esi > 5.0:
+            #     st.error(f"🚨 警告：检测到极端气象恶化 (ESI指数: {current_esi})，启动防汛预案！")
+            #
+            # stream_response = generate_gov_report(vision_res, safe_xai, st.session_state['emergency_val'], current_esi)
+            # st.session_state['gov_report'] = st.write_stream(stream_response) # 核心：渲染打字机动效
+            # ACTION 2 结束
+
+            st.download_button("一键下载 (Word)", st.session_state['gov_report'], file_name="应急专报.docx")
+
+        if st.button("处置完毕，解除预警"):
+            del st.session_state['trigger_emergency_report']
+            st.rerun()
     # *************************** Action 1 结束：系统开发工程师-前端****************************************************

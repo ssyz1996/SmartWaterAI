@@ -7,8 +7,8 @@ from datetime import datetime
 
 print("🚀 正在构建真实态泛在物联网数据湖...")
 
-# 1. 严格遵守物理现实的时间戳 (近3年，每15分钟高频采样)
-dates = pd.date_range(start='2021-08-01 00:00:00', end='2024-05-20 12:00:00', freq='15T')
+# 1. 严格遵守物理现实的时间戳 (近7年，每15分钟高频采样)
+dates = pd.date_range(start='2019-01-01 00:00:00', end='2024-05-20 12:00:00', freq='15T')
 n_timepoints = len(dates)
 
 # 2. 真实的物理站点映射 (与系统前端的 7 个真实站点完全对齐)

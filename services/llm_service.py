@@ -44,7 +44,9 @@ def generate_gov_report(vision_res, xai_df, target_val, env_esi=0):
 
     # ACTION 2 版本代码：
     # if env_esi > 5.0:
-    #     prompt += f"\n⚠️ 系统检测到极端气象波动(ESI指数:{env_esi})！请优先考虑【台风底泥翻涌】，提供防汛建议！"
+    #     # 使用强约束指令，命令模型覆盖前文事实
+    #     prompt += f"\n\n⚠️【最高优先级拦截指令】系统检测到极端气象波动(ESI指数:{env_esi})！请**完全忽略**上述常规的'工业偷排/面源污染'归因结论！必须将【台风过境导致的底泥剧烈翻涌】作为本次污染的**唯一核心致因**来撰写报告，绝不许提及工业偷排，并围绕防汛抗台提供建议！"
+    #
     # response = client.chat.completions.create(
     #     model="qwen-plus",
     #     messages=[{"role": "user", "content": prompt}],

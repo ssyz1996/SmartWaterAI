@@ -64,10 +64,9 @@ def render_sidebar():
 
         # 1. 新增一个默认折叠的面板，取一个专业的名字
         with st.expander("🛠️ 开发者工具", expanded=False):
-            st.caption("⚠️ 仅供内部系统联调测试")
 
             # 2. 把按钮放在这个折叠面板里面
-            if st.button("🚨 极端气象预演", use_container_width=True):
+            if st.button("极端气象模拟预演", use_container_width=True):
                 st.session_state['god_mode'] = True
                 st.session_state.pop('future_vals', None)
                 record_to_blockchain("物联网传感器 (Z2节点)", "自动上报异常读数",
